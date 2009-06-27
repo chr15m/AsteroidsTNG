@@ -1,10 +1,4 @@
-<!DOCTYPE html>
-<html>
-<head>
-<!--[if IE]><script src="js/explorercanvas/excanvas.js"></script><![endif]-->
-<script src="js/jsgamesoup.js"></script>
-<script>
-function startAsteroids(gs) {
+function startAsteroidsTNG(gs) {
 	function Asteroid(world, radius, x, y) {
 		this.world = world;
 		// variables
@@ -117,41 +111,3 @@ function startAsteroids(gs) {
 	gs.addEntity(new Ship(w));
 	gs.addEntity(new Asteroid(w));
 }
-</script>
-<style>
-html, body {
-	height: 100%;         /* required */
-}
-body {
-	text-align: center;   /* horizontal centering hack for IE */
-	padding: 0;           /* required to "hide" distance div */
-	margin: 0;            /* required to "hide" distance div */
-	overflow: hidden;
-}
-div#distance { 
-	margin-bottom: -10em; /* half of content height */
-	/* background: red;      /* temporary - used to see div */
-	width: 1px;           /* required to "hide" distance div */
-	height: 50%;          /* required */
-	float: left;          /* required */
-
-}
-div#content {
-	position: relative;   /* positions content on top of distance */
-	text-align: left;     /* horizontal centering hack for IE */
-	height: 320px;         /* required - desired height */
-	width: 480px;          /* required - desired width */
-	/* background: blue;     /* cosmetic */
-	margin: 0 auto;       /* required */
-	clear: left;          /* required */
-}
-</style>
-</head>
-<body>
-	<div id="distance"></div>
-	<div id="content">
-		<!-- absolutely centered content -->
-		<canvas id='asteroids' jsgs="startAsteroids" fps="40" width="480" height="320"></canvas>
-	</div>
-</body>
-</html>

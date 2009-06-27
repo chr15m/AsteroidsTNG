@@ -1,44 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<!--[if IE]><script src="js/explorercanvas/excanvas.js"></script><![endif]-->
-	<script src="js/jsgamesoup.js"></script>
-<script>
-function startGame(gs) {
-		function A(start) {
-			this.x = 100;
-			this.y = start || 100;
-			this.draw = function(c, gs) {
-				c.strokeStyle = 'rgba(150, 150, 150, 1.0)';
-				this.y = this.y - 1;
-				if (this.y < 0) {
-					this.y = gs.canvas.height;
-				}
-				c.beginPath();
-				c.moveTo(this.x - 50, this.y);
-				c.lineTo(this.x + 50, this.y);
-				c.stroke();
-			}
-		}
-		
-		function World() {
-			this.update = function(gs) {
-				if (gs.frameCount == 1 || gs.frameCount == 100 || gs.frameCount == 150) {
-					gs.addEntity(new A(10));
-				}
-			}
-			
-			this.draw = function() {
-				gs.clear();
-			}
-		}
-		
-		gs.addEntity(new World());
+<!--[if IE]><script src="../jsgamesoupjs/explorercanvas/excanvas.js"></script><![endif]-->
+<script src="../jsgamesoup/js/jsgamesoup.js"></script>
+<script src="js/asteroidsTNG.js"></script>
+<style>
+html, body {
+	height: 100%;         /* required */
 }
-</script>
+body {
+	text-align: center;   /* horizontal centering hack for IE */
+	padding: 0;           /* required to "hide" distance div */
+	margin: 0;            /* required to "hide" distance div */
+	overflow: hidden;
+}
+div#distance { 
+	margin-bottom: -10em; /* half of content height */
+	/* background: red;      /* temporary - used to see div */
+	width: 1px;           /* required to "hide" distance div */
+	height: 50%;          /* required */
+	float: left;          /* required */
+
+}
+div#content {
+	position: relative;   /* positions content on top of distance */
+	text-align: left;     /* horizontal centering hack for IE */
+	height: 320px;         /* required - desired height */
+	width: 480px;          /* required - desired width */
+	/* background: blue;     /* cosmetic */
+	margin: 0 auto;       /* required */
+	clear: left;          /* required */
+}
+</style>
 </head>
-<body style="height: 100%; margin: 0; overflow: hidden;">
-<canvas id='surface' jsgs='startGame'></canvas>
+<body>
+	<div id="distance"></div>
+	<div id="content">
+		<!-- absolutely centered content -->
+		<canvas id='asteroidsTNG' jsgs="startAsteroidsTNG" fps="40" width="480" height="320"></canvas>
+	</div>
 </body>
 </html>
-
