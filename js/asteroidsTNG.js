@@ -1,4 +1,5 @@
 function startAsteroidsTNG(gs) {
+	/*** A single spinning asteroid ***/
 	function Asteroid(world, radius, x, y) {
 		this.world = world;
 		// variables
@@ -41,12 +42,14 @@ function startAsteroidsTNG(gs) {
 		}
 	}
 	
+	/*** A background parallax star ***/
 	function Star(world) {
 		this.world = world;
 		this.rate = gs.random(0, 1);
 		this.type = Math.round(gs.random(0, 2));
 	}
 	
+	/*** A player ship ***/
 	function Ship(world) {
 		this.world = world;
 		this.world.player = this;
@@ -56,10 +59,7 @@ function startAsteroidsTNG(gs) {
 		this.speed = 0;
 		this.points = [[0, -13], [-7, 7], [7, 7]];
 		this.poly = [];
-		
-		this.keyDown = function (keyCode) {
-			//console.log(keyCode);
-		}
+		this.lastsmoke = null;
 		
 		this.keyHeld_37 = this.keyDown_37 = function () {
 			this.angle -= 0.1;
@@ -69,13 +69,36 @@ function startAsteroidsTNG(gs) {
 			this.angle += 0.1;
 		}
 		
+		this.keyDown_38 = function () {
+			this.speed = 1;
+		}
+		
+		this.keyHeld_38 = function () {
+			if (this.speed < 3.0)
+				this.speed += 0.3;
+		}
+		
+		this.keyDown = function (keyCode) {
+			//console.log(keyCode);
+		}
+		
 		this.collisionPoly = function () {
 			return this.poly;
 		}
 		
 		this.update = function() {
+			if (this.speed > 0.1)
+				this.speed -= 0.1;
+			else
+				this.speed = 0;
+			this.x = (this.x + this.speed * Math.sin(this.angle) + gs.width) % gs.width;
+			this.y = (this.y - this.speed * Math.cos(this.angle) + gs.height) % gs.height;
 			for (n=0; n<this.points.length; n++) {
 				this.poly[n] = [this.points[n][0] * Math.cos(this.angle) - this.points[n][1] * Math.sin(this.angle) + this.x, this.points[n][0] * Math.sin(this.angle) + this.points[n][1] * Math.cos(this.angle) + this.y];
+			}
+			if (this.speed && (!gs.inEntities(this.lastsmoke) || gs.distance([this.lastsmoke.x, this.lastsmoke.y], [this.x, this.y]) > 15)) {
+				this.lastsmoke = new Smoke(this.x - 9 * Math.sin(this.angle), this.y + 9 * Math.cos(this.angle));
+				gs.addEntity(this.lastsmoke);
 			}
 		}
 		
@@ -85,6 +108,31 @@ function startAsteroidsTNG(gs) {
 		}
 	}
 	
+	/*** Smoke coming out of the ship ***/
+	function Smoke(x, y) {
+		this.x = x;
+		this.y = y;
+		this.life = 1.0;
+		
+		this.draw = function(c) {
+			c.strokeStyle = 'rgba(200, 200, 200, ' + this.life + ')';
+			c.beginPath();
+			c.arc(this.x, this.y, 2, 0, Math.PI*2, true);
+			c.closePath();
+			c.stroke();
+		}
+		
+		this.update = function() {
+			this.life -= 0.08;
+			if (this.life < 0)
+			{
+				gs.delEntity(this);
+				this.life = 0.01;
+			}
+		}
+	}
+	
+	/*** World ***/
 	function World() {
 		this.player = null;
 		this.x = 0;
@@ -93,7 +141,7 @@ function startAsteroidsTNG(gs) {
 			if (this.player) {
 				var xdiff = this.player.x - gs.width / 2;
 				if (Math.abs(xdiff) > 0.01)
-					this.x += diff * 0.5;
+					this.x += xdiff * 0.5;
 				var ydiff = this.player.y - gs.width / 2;
 				if (Math.abs(ydiff) > 0.01)
 					this.y += ydiff * 0.5;
@@ -109,5 +157,7 @@ function startAsteroidsTNG(gs) {
 	w = new World();
 	gs.addEntity(w);
 	gs.addEntity(new Ship(w));
-	gs.addEntity(new Asteroid(w));
+	for (n=0; n<3; n++) {
+		gs.addEntity(new Asteroid(w));
+	}
 }
