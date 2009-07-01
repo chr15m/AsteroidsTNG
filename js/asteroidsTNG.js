@@ -46,7 +46,37 @@ function startAsteroidsTNG(gs) {
 	function Star(world) {
 		this.world = world;
 		this.rate = gs.random(0, 1);
-		this.type = Math.round(gs.random(0, 2));
+		this.size = Math.round(gs.random(0, 3));
+		this.x = gs.random(0, 10000);
+		this.y = gs.random(0, 10000);
+		this.fs = 'rgba(255, 255, 255, ' + this.rate + ')';
+		
+		if (this.size > 1.0) {
+			this.draw = function(c) {
+				c.strokeStyle = 'rgba(200, 200, 200, ' + this.rate + ')';
+				c.beginPath();
+				c.arc(Math.abs((-this.world.player.x * this.rate + this.x) % gs.width), Math.abs((-this.world.player.y * this.rate + this.y) % gs.height), this.size, 0, Math.PI*2, true);
+				c.closePath();
+				c.stroke();
+			}
+		} else {
+			this.draw = function(c) {
+				c.fillStyle = this.fs;
+				var sx = Math.round(Math.abs((-this.world.player.x * this.rate + this.x) % gs.width)) - 0.5;
+				var sy = Math.round(Math.abs((-this.world.player.y * this.rate + this.y) % gs.height)) - 0.5;
+				c.beginPath();
+				c.rect(sx, sy, 1, 1);
+				for (var i=0; i<2; i++) {
+					for (var j=0; j<2; j++) {
+						c.rect(sx + (i * 2 - 1) * 2, sy + (j * 2 - 1) * 2, 1, 1);
+						c.rect(sx + (i * 2 - 1), sy + (j * 2 - 1), 1, 1);
+					}
+				}
+				c.closePath();
+				c.fill();
+				
+			}
+		}
 	}
 	
 	/*** A player ship ***/
@@ -138,14 +168,14 @@ function startAsteroidsTNG(gs) {
 		this.x = 0;
 		this.y = 0;
 		this.update = function() {
-			if (this.player) {
+			/*if (this.player) {
 				var xdiff = this.player.x - gs.width / 2;
 				if (Math.abs(xdiff) > 0.01)
 					this.x += xdiff * 0.5;
 				var ydiff = this.player.y - gs.width / 2;
 				if (Math.abs(ydiff) > 0.01)
 					this.y += ydiff * 0.5;
-			}
+			}*/
 		}
 		
 		this.draw = function() {
@@ -159,5 +189,8 @@ function startAsteroidsTNG(gs) {
 	gs.addEntity(new Ship(w));
 	for (n=0; n<3; n++) {
 		gs.addEntity(new Asteroid(w));
+	}
+	for (n=0; n<10; n++) {
+		gs.addEntity(new Star(w));
 	}
 }
