@@ -45,25 +45,40 @@ function startAsteroidsTNG(gs) {
 	/*** A background parallax star ***/
 	function Star(world) {
 		this.world = world;
-		this.rate = gs.random(0, 1);
+		this.rate = gs.random(0.5, 1.0);
 		this.size = Math.round(gs.random(0, 3));
 		this.x = gs.random(0, 10000);
 		this.y = gs.random(0, 10000);
+		this.vx = gs.random(-1, 1);
+		this.vy = gs.random(-1, 1);
 		this.fs = 'rgba(255, 255, 255, ' + this.rate + ')';
+		
+		this.update = function() {
+			this.x += this.vx;
+			this.y += this.vy;
+		}
+		
+		this.getX = function() {
+			return Math.round((this.x) % gs.width);
+		}
+		
+		this.getY = function() {
+			return Math.round((this.y) % gs.height);
+		}
 		
 		if (this.size > 1.0) {
 			this.draw = function(c) {
-				c.strokeStyle = 'rgba(200, 200, 200, ' + this.rate + ')';
+				c.strokeStyle = this.fs;
 				c.beginPath();
-				c.arc(Math.abs((-this.world.player.x * this.rate + this.x) % gs.width), Math.abs((-this.world.player.y * this.rate + this.y) % gs.height), this.size, 0, Math.PI*2, true);
+				c.arc(this.getX(), this.getY(), this.size, 0, Math.PI*2, true);
 				c.closePath();
 				c.stroke();
 			}
 		} else {
 			this.draw = function(c) {
 				c.fillStyle = this.fs;
-				var sx = Math.round(Math.abs((-this.world.player.x * this.rate + this.x) % gs.width)) - 0.5;
-				var sy = Math.round(Math.abs((-this.world.player.y * this.rate + this.y) % gs.height)) - 0.5;
+				var sx = this.getX() - 0.5;
+				var sy = this.getY() - 0.5;
 				c.beginPath();
 				c.rect(sx, sy, 1, 1);
 				for (var i=0; i<2; i++) {
