@@ -1,10 +1,30 @@
 function startAsteroidsTNG(gs) {
+	/*** Define some different types of things ***/
+	ship = 1;
+	bullet = 2;
+	asteroid = 3;
+	
+	/*** Number of asteroids ***/
+	var numAsteroids = 3;
+	
+	/*** Helper function to make a bunch of harmless bullets ***/
+	function MakeExplosion(x, y) {
+		for (var b=0; b<8; b++)
+			gs.addEntity(new Bullet(x, y, gs.random(0, Math.PI * 2), gs.random(-0.5, 0.5)));
+	}
+	
+	/*** reload the game ***/
+	function doReload(secs) {
+		setTimeout(function() {window.location.href = unescape(window.location.pathname);}, 1000 * secs);
+	}
+	
 	/*** A single spinning asteroid ***/
 	function Asteroid(world, radius, x, y) {
+		this.type = asteroid;
 		this.world = world;
 		// variables
-		this.x = x || gs.random(0, gs.width);
-		this.y = y || gs.random(0, gs.height);
+		this.x = x || (gs.random(0, gs.width / 2) + 3 * gs.width / 4);
+		this.y = y || (gs.random(0, gs.height / 2) + 3 * gs.height / 4);
 		this.angle = gs.random(0, Math.PI);
 		this.radius = radius || 40;
 		// velocities
@@ -23,6 +43,13 @@ function startAsteroidsTNG(gs) {
 		
 		this.collisionPoly = function() {
 			return this.poly;
+		}
+		
+		this.explode = function () {
+			MakeExplosion(this.x, this.y);
+			gs.delEntity(this);
+			if (this.radius < 4.0)
+				gs.addEntity(new Asteroid(this.world, this.radius / 2, this.x, this.y));
 		}
 		
 		this.update = function() {
@@ -54,16 +81,16 @@ function startAsteroidsTNG(gs) {
 		this.fs = 'rgba(255, 255, 255, ' + this.rate + ')';
 		
 		this.update = function() {
-			this.x += this.vx;
-			this.y += this.vy;
+			this.x = (this.x + this.vx + gs.width) % gs.width;
+			this.y = (this.y + this.vy + gs.height) % gs.height;
 		}
 		
 		this.getX = function() {
-			return Math.round((this.x) % gs.width);
+			return Math.round(this.x);
 		}
 		
 		this.getY = function() {
-			return Math.round((this.y) % gs.height);
+			return Math.round(this.y);
 		}
 		
 		if (this.size > 1.0) {
@@ -96,6 +123,7 @@ function startAsteroidsTNG(gs) {
 	
 	/*** A player ship ***/
 	function Ship(world) {
+		this.type = ship;
 		this.world = world;
 		this.world.player = this;
 		this.x = gs.width / 2;
@@ -123,12 +151,29 @@ function startAsteroidsTNG(gs) {
 				this.speed += 0.3;
 		}
 		
+		this.keyDown_32 = function () {
+			gs.addEntity(new Bullet(this.x + 12 * Math.sin(this.angle), this.y - 12 * Math.cos(this.angle), this.angle, this.speed, true));
+		}
+		
 		this.keyDown = function (keyCode) {
 			//console.log(keyCode);
 		}
 		
-		this.collisionPoly = function () {
+		this.collisionPoly = function() {
 			return this.poly;
+		}
+		
+		this.collided = function(other) {
+			if (other.type == asteroid) {
+				this.explode();
+				other.explode();
+				doReload(1);
+			}
+		}
+		
+		this.explode = function() {
+			MakeExplosion(this.x, this.y);
+			gs.delEntity(this);
 		}
 		
 		this.update = function() {
@@ -151,6 +196,46 @@ function startAsteroidsTNG(gs) {
 			c.strokeStyle = 'rgba(255, 255, 255, 1.0)';
 			gs.polygon(this.poly);
 		}
+	}
+	
+	/*** A bullet which shoots out of the ship ***/
+	function Bullet(x, y, angle, speed, shipBullet) {
+		this.type = bullet;
+		this.angle = angle;
+		this.x = x;
+		this.y = y;
+		this.speed = speed + 3.0;
+		this.age = 0;
+		
+		if (shipBullet) {
+			this.collisionPoly = function() {
+				return this.poly;
+			}
+			
+			this.collided = function(other) {
+				if (other.type == asteroid) {
+					numAsteroids -= 1;
+					other.explode();
+					gs.delEntity(this);
+					if (!numAsteroids)
+						doReload(3);
+				}
+			}
+		}
+		
+		this.update = function() {
+			if (this.age++ > 40)
+				gs.delEntity(this);
+			this.x = (this.x + this.speed * Math.sin(this.angle) + gs.width) % gs.width;
+			this.y = (this.y - this.speed * Math.cos(this.angle) + gs.height) % gs.height;
+			this.poly = [[this.x, this.y], [this.x - 5.0 * Math.sin(this.angle), this.y + 5.0 * Math.cos(this.angle)]];
+		}
+		
+		this.draw = function(c) {
+			c.strokeStyle = 'rgba(255, 255, 255, 1.0)';
+			gs.polygon(this.poly);
+		}
+
 	}
 	
 	/*** Smoke coming out of the ship ***/
@@ -182,16 +267,6 @@ function startAsteroidsTNG(gs) {
 		this.player = null;
 		this.x = 0;
 		this.y = 0;
-		this.update = function() {
-			/*if (this.player) {
-				var xdiff = this.player.x - gs.width / 2;
-				if (Math.abs(xdiff) > 0.01)
-					this.x += xdiff * 0.5;
-				var ydiff = this.player.y - gs.width / 2;
-				if (Math.abs(ydiff) > 0.01)
-					this.y += ydiff * 0.5;
-			}*/
-		}
 		
 		this.draw = function() {
 			gs.clear();
@@ -202,7 +277,7 @@ function startAsteroidsTNG(gs) {
 	w = new World();
 	gs.addEntity(w);
 	gs.addEntity(new Ship(w));
-	for (n=0; n<3; n++) {
+	for (n=0; n<numAsteroids; n++) {
 		gs.addEntity(new Asteroid(w));
 	}
 	for (n=0; n<10; n++) {
