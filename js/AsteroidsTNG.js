@@ -7,12 +7,6 @@ function startAsteroidsTNG(gs) {
 	/*** Number of asteroids ***/
 	var numAsteroids = 3;
 	
-	/*** Helper function to make a bunch of harmless bullets ***/
-	function MakeExplosion(x, y) {
-		for (var b=0; b<8; b++)
-			gs.addEntity(new Bullet(x, y, gs.random(0, Math.PI * 2), gs.random(-0.5, 0.5)));
-	}
-	
 	/*** reload the game ***/
 	function doReload(secs) {
 		setTimeout(function() {window.location.href = unescape(window.location.pathname);}, 1000 * secs);
@@ -27,10 +21,6 @@ function startAsteroidsTNG(gs) {
 		this.y = y || (gs.random(0, gs.height / 2) + 3 * gs.height / 4);
 		this.angle = gs.random(0, Math.PI);
 		this.radius = radius || 40;
-		// velocities
-		this.angleV = gs.random(-0.1, 0.1);
-		this.xV = gs.random(-0.5, 0.5);
-		this.yV = gs.random(-0.5, 0.5);
 		// structure of this shape
 		this.points = [];
 		this.randomPoint = function() {
@@ -46,20 +36,15 @@ function startAsteroidsTNG(gs) {
 		}
 		
 		this.explode = function () {
-			MakeExplosion(this.x, this.y);
 			gs.delEntity(this);
 			if (this.radius < 4.0)
 				gs.addEntity(new Asteroid(this.world, this.radius / 2, this.x, this.y));
 		}
 		
 		this.update = function() {
-			// update all our state variables
-			this.angle += this.angleV;
-			this.x = (this.x + this.xV + gs.width) % gs.width;
-			this.y = (this.y + this.yV + gs.height) % gs.height;
 			// update our shape definition
 			for (n=0; n<this.points.length; n++) {
-				this.poly[n] = [this.points[n][0] * Math.cos(this.angle) - this.points[n][1] * Math.sin(this.angle) + this.x, this.points[n][0] * Math.sin(this.angle) + this.points[n][1] * Math.cos(this.angle) + this.y];
+				this.poly[n] = [this.points[n][0] * Math.cos(this.angle) - this.points[n][1] * Math.sin(this.angle) + this.x - this.world.cameraX(), this.points[n][0] * Math.sin(this.angle) + this.points[n][1] * Math.cos(this.angle) + this.y - this.world.cameraY()];
 			}
 		}
 		
@@ -76,21 +61,17 @@ function startAsteroidsTNG(gs) {
 		this.size = Math.round(gs.random(0, 3));
 		this.x = gs.random(0, 10000);
 		this.y = gs.random(0, 10000);
-		this.vx = gs.random(-1, 1);
-		this.vy = gs.random(-1, 1);
 		this.fs = 'rgba(255, 255, 255, ' + this.rate + ')';
 		
 		this.update = function() {
-			this.x = (this.x + this.vx + gs.width) % gs.width;
-			this.y = (this.y + this.vy + gs.height) % gs.height;
 		}
 		
 		this.getX = function() {
-			return Math.round(this.x);
+			return Math.round((this.x - this.world.cameraX()) * this.rate % gs.width);
 		}
 		
 		this.getY = function() {
-			return Math.round(this.y);
+			return Math.round((this.y - this.world.cameraY()) * this.rate % gs.height);
 		}
 		
 		if (this.size > 1.0) {
@@ -152,7 +133,7 @@ function startAsteroidsTNG(gs) {
 		}
 		
 		this.keyDown_32 = function () {
-			gs.addEntity(new Bullet(this.x + 12 * Math.sin(this.angle), this.y - 12 * Math.cos(this.angle), this.angle, this.speed, true));
+			// pass
 		}
 		
 		this.keyDown = function (keyCode) {
@@ -172,7 +153,6 @@ function startAsteroidsTNG(gs) {
 		}
 		
 		this.explode = function() {
-			MakeExplosion(this.x, this.y);
 			gs.delEntity(this);
 		}
 		
@@ -181,13 +161,13 @@ function startAsteroidsTNG(gs) {
 				this.speed -= 0.1;
 			else
 				this.speed = 0;
-			this.x = (this.x + this.speed * Math.sin(this.angle) + gs.width) % gs.width;
-			this.y = (this.y - this.speed * Math.cos(this.angle) + gs.height) % gs.height;
+			this.x = this.x + this.speed * Math.sin(this.angle);
+			this.y = this.y - this.speed * Math.cos(this.angle);
 			for (n=0; n<this.points.length; n++) {
-				this.poly[n] = [this.points[n][0] * Math.cos(this.angle) - this.points[n][1] * Math.sin(this.angle) + this.x, this.points[n][0] * Math.sin(this.angle) + this.points[n][1] * Math.cos(this.angle) + this.y];
+				this.poly[n] = [this.points[n][0] * Math.cos(this.angle) - this.points[n][1] * Math.sin(this.angle) + this.x - this.world.cameraX(), this.points[n][0] * Math.sin(this.angle) + this.points[n][1] * Math.cos(this.angle) + this.y - this.world.cameraY()];
 			}
 			if (this.speed && (!gs.inEntities(this.lastsmoke) || gs.distance([this.lastsmoke.x, this.lastsmoke.y], [this.x, this.y]) > 15)) {
-				this.lastsmoke = new Smoke(this.x - 9 * Math.sin(this.angle), this.y + 9 * Math.cos(this.angle));
+				this.lastsmoke = new Smoke(world, this.x - 9 * Math.sin(this.angle), this.y + 9 * Math.cos(this.angle));
 				gs.addEntity(this.lastsmoke);
 			}
 		}
@@ -198,56 +178,17 @@ function startAsteroidsTNG(gs) {
 		}
 	}
 	
-	/*** A bullet which shoots out of the ship ***/
-	function Bullet(x, y, angle, speed, shipBullet) {
-		this.type = bullet;
-		this.angle = angle;
-		this.x = x;
-		this.y = y;
-		this.speed = speed + 3.0;
-		this.age = 0;
-		
-		if (shipBullet) {
-			this.collisionPoly = function() {
-				return this.poly;
-			}
-			
-			this.collided = function(other) {
-				if (other.type == asteroid) {
-					numAsteroids -= 1;
-					other.explode();
-					gs.delEntity(this);
-					if (!numAsteroids)
-						doReload(3);
-				}
-			}
-		}
-		
-		this.update = function() {
-			if (this.age++ > 40)
-				gs.delEntity(this);
-			this.x = (this.x + this.speed * Math.sin(this.angle) + gs.width) % gs.width;
-			this.y = (this.y - this.speed * Math.cos(this.angle) + gs.height) % gs.height;
-			this.poly = [[this.x, this.y], [this.x - 5.0 * Math.sin(this.angle), this.y + 5.0 * Math.cos(this.angle)]];
-		}
-		
-		this.draw = function(c) {
-			c.strokeStyle = 'rgba(255, 255, 255, 1.0)';
-			gs.polygon(this.poly);
-		}
-
-	}
-	
 	/*** Smoke coming out of the ship ***/
-	function Smoke(x, y) {
+	function Smoke(world, x, y) {
 		this.x = x;
 		this.y = y;
+		this.world = world;
 		this.life = 1.0;
 		
 		this.draw = function(c) {
 			c.strokeStyle = 'rgba(200, 200, 200, ' + this.life + ')';
 			c.beginPath();
-			c.arc(this.x, this.y, 2, 0, Math.PI*2, true);
+			c.arc(this.x - this.world.cameraX(), this.y - this.world.cameraY(), 2, 0, Math.PI*2, true);
 			c.closePath();
 			c.stroke();
 		}
@@ -267,10 +208,25 @@ function startAsteroidsTNG(gs) {
 		this.player = null;
 		this.x = 0;
 		this.y = 0;
+		this.w = gs.width / 2;
+		this.h = gs.height / 2;
+		
+		this.cameraX = function() {
+			return this.x - this.w;
+		}
+		
+		this.cameraY = function () {
+			return this.y - this.h;
+		}
 		
 		this.draw = function() {
 			gs.clear();
 			gs.background('rgba(100, 100, 100, 1.0)');
+		}
+		
+		this.update = function() {
+			this.x = this.x + (this.player.x - this.x) * 0.1;
+			this.y = this.y + (this.player.y - this.y) * 0.1;
 		}
 	}
 	
