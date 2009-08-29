@@ -106,7 +106,6 @@ function startAsteroidsTNG(gs) {
 	function Ship(world) {
 		this.type = ship;
 		this.world = world;
-		this.world.player = this;
 		this.x = gs.width / 2;
 		this.y = gs.height / 2;
 		this.angle = 0;
@@ -114,6 +113,7 @@ function startAsteroidsTNG(gs) {
 		this.points = [[0, -13], [-7, 7], [7, 7]];
 		this.poly = [];
 		this.lastsmoke = null;
+		this.world.setPlayer(this);
 		
 		this.keyHeld_37 = this.keyDown_37 = function () {
 			this.angle -= 0.1;
@@ -210,6 +210,12 @@ function startAsteroidsTNG(gs) {
 		this.y = 0;
 		this.w = gs.width / 2;
 		this.h = gs.height / 2;
+		
+		this.setPlayer = function(player) {
+			this.player = player;
+			this.x = player.x;
+			this.y = player.y;
+		}
 		
 		this.cameraX = function() {
 			return this.x - this.w;
