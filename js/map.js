@@ -15,6 +15,10 @@ function Map(mt, seed) {
 	// if they have provided a seed then use it instead of the default
 	var mapSeed = this.mapSeed = 314259;
 	if (seed) mapSeed = seed;
+	// cache for quadrant arrays
+	quadrantcache = {};
+	// cache for asteroid numbers
+	asteroidcache = {};
 	
 	/**
 		Get the results of one quadrant's worth of stuff.
@@ -22,6 +26,8 @@ function Map(mt, seed) {
 		@return array of asteroid IDs
 	*/
 	this.getQuadrantData = function(quadrant) {
+		var qidx = quadrant[0] + "," + quadrant[1];
+		if (quadrantcache[qidx]) return quadrantcache[qidx];
 		// make a copy of our quadrant id (x, y)
 		var seedbase = quadrant.slice();
 		// push our mapSeed onto that quadrant data
@@ -38,13 +44,15 @@ function Map(mt, seed) {
 		}
 		
 		// size of asteroids in this quadrant
-		return {"asteroidSize": this.mt.next(), "asteroids": asteroids};
+		quadrantcache[qidx] = {"asteroidSize": this.mt.next(), "asteroids": asteroids};
+		return quadrantcache[qidx];
 	}
 	
 	/** 
 		@return the asteroid data for a particular asteroid ID 
 	*/
 	this.getAsteroidData = function(id, asteroidScale) {
+		if (asteroidcache[id]) return asteroidcache[id];
 		// seed our generator with this asteroid ID and the map seed
 		this.mt.setSeed([id, this.mapSeed]);
 		// pick a random radius size
@@ -66,13 +74,14 @@ function Map(mt, seed) {
 			points.push([radius * Math.sin(i * Math.PI / (numPoints / 2)) + randomPoint(this.mt),
 				radius * Math.cos(i * Math.PI / (numPoints / 2)) + randomPoint(this.mt)]);
 		// build and return our asteroid data structure
-		return {
+		asteroidcache[id] = {
 			"id": id,
 			"x": x,
 			"y": y,
 			"angle": angle,
 			"points": points,
 		}
+		return asteroidcache[id];
 	}
 }
 

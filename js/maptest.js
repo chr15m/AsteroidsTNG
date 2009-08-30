@@ -10,7 +10,8 @@ function startMapTest(gs) {
 		this.x = data.x * gs.width / 3 + (quadrant[0] + 1) * gs.width / 3;
 		this.y = data.y * gs.height / 3 + (quadrant[1] + 1) * gs.height / 3;
 		this.angle = data.angle;
-		this.radius = 30 * asteroidScale;
+		this.radius = 20 * asteroidScale + 10;
+		this.quadrant = quadrant;
 		// structure of this shape
 		this.points = [];
 		for (p=0; p<data.points.length; p++)
@@ -85,22 +86,30 @@ function startMapTest(gs) {
 		
 		// let us get every asteroid around quadrant [x, y] using our map-generator object
 		this.getQuadrant = function(quadrant) {
+			var allasteroids = [];
 			for (var i=-1; i<2; i++) {
 				for (var j=-1; j<2; j++) {
 					var pos = [quadrant[0] + i, quadrant[1] + j];
 					var quadrantData = map.getQuadrantData(pos);
 					var asteroids = quadrantData['asteroids'];
+					allasteroids = allasteroids.concat(asteroids);
 					for (var a=0; a<asteroids.length; a++) {
 						if (!asteroidcache[asteroids[a]]) {
 							asteroidcache[asteroids[a]] = new Asteroid(w, map.getAsteroidData(asteroids[a], quadrantData['asteroidSize']), quadrantData['asteroidSize'], pos);
 							asteroidcachesize += 1;
 							gs.addEntity(asteroidcache[asteroids[a]]);
-							// TODO: get rid of the asteroids in the cache which we no longer care about
 						}
 					}
 				}
 			}
-			console.log("asteroidcachesize: " + asteroidcachesize);
+			// get rid of the asteroids in the cache which we no longer care about
+			for (a in asteroidcache) {
+				if (allasteroids.indexOf(asteroidcache[a].id) == -1) {
+					gs.delEntity(asteroidcache[a])
+					delete asteroidcache[a];
+					asteroidcachesize -= 1;
+				}
+			}
 		}
 	}
 	
