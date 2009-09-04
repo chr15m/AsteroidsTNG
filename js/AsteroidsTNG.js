@@ -1,45 +1,29 @@
 function startAsteroidsTNG(gs) {
 	/*** Define some different types of things ***/
-	ship = 1;
-	bullet = 2;
-	asteroid = 3;
-	
-	/*** Number of asteroids ***/
-	var numAsteroids = 3;
+	t_ship = 1;
+	t_asteroid = 2;
 	
 	/*** reload the game ***/
 	function doReload(secs) {
 		setTimeout(function() {window.location.href = unescape(window.location.pathname);}, 1000 * secs);
 	}
 	
-	/*** A single spinning asteroid ***/
-	function Asteroid(world, radius, x, y) {
-		this.type = asteroid;
+	/*** A single asteroid ***/
+	function Asteroid(world, data, asteroidScale, quadrant) {
+		this.type = t_asteroid;
 		this.world = world;
-		// variables
-		this.x = x || (gs.random(0, gs.width / 2) + 3 * gs.width / 4);
-		this.y = y || (gs.random(0, gs.height / 2) + 3 * gs.height / 4);
-		this.angle = gs.random(0, Math.PI);
-		this.radius = radius || 40;
+		// get variables from the incoming data
+		this.id = data.id
+		this.x = data.x * gs.width + quadrant[0] * gs.width;
+		this.y = data.y * gs.height + quadrant[1] * gs.height;
+		this.angle = data.angle;
+		this.radius = 100 * asteroidScale + 30;
+		this.quadrant = quadrant;
 		// structure of this shape
 		this.points = [];
-		this.randomPoint = function() {
-			return gs.random(-this.radius/2, this.radius/2);
-		}
-		for (i = 0; i < Math.round(this.radius / 5); i++)
-			this.points.push([this.radius * Math.sin(i * Math.PI / Math.round(this.radius / 10)) + this.randomPoint(),
-				this.radius * Math.cos(i * Math.PI / Math.round(this.radius / 10)) + this.randomPoint()]);
+		for (p=0; p<data.points.length; p++)
+			this.points.push([this.radius * data.points[p][0], this.radius * data.points[p][1]]);
 		this.poly = [];
-		
-		this.collisionPoly = function() {
-			return this.poly;
-		}
-		
-		this.explode = function () {
-			gs.delEntity(this);
-			if (this.radius < 4.0)
-				gs.addEntity(new Asteroid(this.world, this.radius / 2, this.x, this.y));
-		}
 		
 		this.update = function() {
 			// update our shape definition
@@ -104,7 +88,7 @@ function startAsteroidsTNG(gs) {
 	
 	/*** A player ship ***/
 	function Ship(world) {
-		this.type = ship;
+		this.type = t_ship;
 		this.world = world;
 		this.x = gs.width / 2;
 		this.y = gs.height / 2;
@@ -210,11 +194,24 @@ function startAsteroidsTNG(gs) {
 		this.y = 0;
 		this.w = gs.width / 2;
 		this.h = gs.height / 2;
+		this.quadrant = [0, 0];
+		// seedable deterministic random number generator	
+		var mt = new MersenneTwister();
+		// our procedural map generator
+		var map = new Map(mt);
 		
 		this.setPlayer = function(player) {
 			this.player = player;
 			this.x = player.x;
 			this.y = player.y;
+			this.updateQuadrant();
+		}
+		
+		this.updateQuadrant = function() {
+			this.quadrant = [Math.floor(this.x / gs.width),
+				Math.floor(this.y / gs.height)];
+			console.log(this.quadrant);
+			this.getQuadrant(this.quadrant);
 		}
 		
 		this.cameraX = function() {
@@ -233,15 +230,48 @@ function startAsteroidsTNG(gs) {
 		this.update = function() {
 			this.x = this.x + (this.player.x - this.x) * 0.1;
 			this.y = this.y + (this.player.y - this.y) * 0.1;
+			if (Math.floor(this.player.x / gs.width) != this.quadrant[0] ||
+				Math.floor(this.player.y / gs.height) != this.quadrant[1]) {
+				this.updateQuadrant();
+			}
+		}
+		
+		// cache of all asteroid objects by their ID
+		var asteroidcache = {};
+		var asteroidcachesize = 0;
+		
+		// let us get every asteroid around quadrant [x, y] using our map-generator object
+		this.getQuadrant = function(quadrant) {
+			var allasteroids = [];
+			for (var i=-1; i<2; i++) {
+				for (var j=-1; j<2; j++) {
+					var pos = [quadrant[0] + i, quadrant[1] + j];
+					var quadrantData = map.getQuadrantData(pos);
+					var asteroids = quadrantData['asteroids'];
+					allasteroids = allasteroids.concat(asteroids);
+					for (var a=0; a<asteroids.length; a++) {
+						if (!asteroidcache[asteroids[a]]) {
+							asteroidcache[asteroids[a]] = new Asteroid(w, map.getAsteroidData(asteroids[a], quadrantData['asteroidSize']), quadrantData['asteroidSize'], pos);
+							asteroidcachesize += 1;
+							gs.addEntity(asteroidcache[asteroids[a]]);
+						}
+					}
+				}
+			}
+			// get rid of the asteroids in the cache which we no longer care about
+			for (a in asteroidcache) {
+				if (allasteroids.indexOf(asteroidcache[a].id) == -1) {
+					gs.delEntity(asteroidcache[a])
+					delete asteroidcache[a];
+					asteroidcachesize -= 1;
+				}
+			}
 		}
 	}
 	
 	w = new World();
 	gs.addEntity(w);
 	gs.addEntity(new Ship(w));
-	for (n=0; n<numAsteroids; n++) {
-		gs.addEntity(new Asteroid(w));
-	}
 	for (n=0; n<10; n++) {
 		gs.addEntity(new Star(w));
 	}
