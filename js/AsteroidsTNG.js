@@ -24,11 +24,14 @@ function startAsteroidsTNG(gs) {
 		for (p=0; p<data.points.length; p++)
 			this.points.push([this.radius * data.points[p][0], this.radius * data.points[p][1]]);
 		this.poly = [];
+		// precalculate rotated version
+		for (n=0; n<data.points.length; n++)
+			this.points[n] = [this.points[n][0] * Math.cos(this.angle) - this.points[n][1] * Math.sin(this.angle), this.points[n][0] * Math.sin(this.angle) + this.points[n][1] * Math.cos(this.angle)];
 		
 		this.update = function() {
 			// update our shape definition
 			for (n=0; n<this.points.length; n++) {
-				this.poly[n] = [this.points[n][0] * Math.cos(this.angle) - this.points[n][1] * Math.sin(this.angle) + this.x - this.world.cameraX(), this.points[n][0] * Math.sin(this.angle) + this.points[n][1] * Math.cos(this.angle) + this.y - this.world.cameraY()];
+				this.poly[n] = [this.points[n][0] + this.x - this.world.cameraX(), this.points[n][1] + this.y - this.world.cameraY()];
 			}
 		}
 		
@@ -208,9 +211,8 @@ function startAsteroidsTNG(gs) {
 		}
 		
 		this.updateQuadrant = function() {
-			this.quadrant = [Math.floor(this.x / gs.width),
-				Math.floor(this.y / gs.height)];
-			console.log(this.quadrant);
+			this.quadrant = [Math.floor(this.player.x / gs.width),
+				Math.floor(this.player.y / gs.height)];
 			this.getQuadrant(this.quadrant);
 		}
 		
