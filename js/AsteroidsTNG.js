@@ -19,6 +19,9 @@ function startAsteroidsTNG(gs) {
 		this.angle = data.angle;
 		this.radius = 100 * asteroidScale + 30;
 		this.quadrant = quadrant;
+		this.strokeStyle = 'rgba(255, 255, 255, 1.0)';
+		this.fillStyle = 'rgba(115, 115, 115, 1.0)';
+		
 		// structure of this shape
 		this.points = [];
 		for (p=0; p<data.points.length; p++)
@@ -26,17 +29,18 @@ function startAsteroidsTNG(gs) {
 		this.poly = [];
 		// precalculate rotated version
 		for (n=0; n<data.points.length; n++)
-			this.points[n] = [this.points[n][0] * Math.cos(this.angle) - this.points[n][1] * Math.sin(this.angle), this.points[n][0] * Math.sin(this.angle) + this.points[n][1] * Math.cos(this.angle)];
+			this.points[n] = [this.points[n][0] * Math.cos(this.angle) - this.points[n][1] * Math.sin(this.angle) + this.x, this.points[n][0] * Math.sin(this.angle) + this.points[n][1] * Math.cos(this.angle) + this.y];
 		
 		this.update = function() {
 			// update our shape definition
 			for (n=0; n<this.points.length; n++) {
-				this.poly[n] = [this.points[n][0] + this.x - this.world.cameraX(), this.points[n][1] + this.y - this.world.cameraY()];
+				this.poly[n] = [this.points[n][0] - this.world.cameraX(), this.points[n][1] - this.world.cameraY()];
 			}
 		}
 		
 		this.draw = function(c) {
-			c.strokeStyle = 'rgba(255, 255, 255, 1.0)';
+			c.strokeStyle = this.strokeStyle;
+			c.fillStyle = this.fillStyle;
 			gs.polygon(this.poly);
 		}
 	}
@@ -48,7 +52,7 @@ function startAsteroidsTNG(gs) {
 		this.size = Math.round(gs.random(0, 3));
 		this.x = gs.random(0, 10000);
 		this.y = gs.random(0, 10000);
-		this.fs = 'rgba(255, 255, 255, ' + this.rate + ')';
+		this.fs = 'rgba(255, 255, 255, ' + (this.rate - 0.2) + ')';
 		
 		this.update = function() {
 		}
@@ -101,6 +105,8 @@ function startAsteroidsTNG(gs) {
 		this.poly = [];
 		this.lastsmoke = null;
 		this.world.setPlayer(this);
+		this.strokeStyle = 'rgba(255, 255, 255, 1.0)';
+		this.fillStyle = 'rgba(115, 115, 115, 1.0)';
 		
 		this.keyHeld_37 = this.keyDown_37 = function () {
 			this.angle -= 0.1;
@@ -160,22 +166,37 @@ function startAsteroidsTNG(gs) {
 		}
 		
 		this.draw = function(c) {
-			c.strokeStyle = 'rgba(255, 255, 255, 1.0)';
-			gs.polygon(this.poly);
+			var poly = this.poly;
+			c.strokeStyle = this.strokeStyle;
+			c.fillStyle = this.fillStyle;
+			c.beginPath();
+			c.moveTo(poly[0][0], poly[0][1]);
+			for (var n = 0; n < poly.length; n++) {
+				c.lineTo(poly[n][0], poly[n][1]);
+			}
+			c.lineTo(poly[0][0], poly[0][1]);
+			c.closePath();
+			c.fill();
+			c.stroke();
 		}
 	}
 	
+	var smokeStrength = [];
+	for (var r=0; r<10; r++) {
+		smokeStrength[r] = 'rgba(200, 200, 200, ' + (r/10) + ')';
+	}
 	/*** Smoke coming out of the ship ***/
 	function Smoke(world, x, y) {
 		this.x = x;
 		this.y = y;
 		this.world = world;
 		this.life = 1.0;
+		var pi2 = Math.PI * 2;
 		
 		this.draw = function(c) {
-			c.strokeStyle = 'rgba(200, 200, 200, ' + this.life + ')';
+			c.strokeStyle = smokeStrength[Math.floor(this.life * 10)];
 			c.beginPath();
-			c.arc(this.x - this.world.cameraX(), this.y - this.world.cameraY(), 2, 0, Math.PI*2, true);
+			c.arc(this.x - this.world.cameraX(), this.y - this.world.cameraY(), 2, 0, pi2, true);
 			c.closePath();
 			c.stroke();
 		}
@@ -202,6 +223,8 @@ function startAsteroidsTNG(gs) {
 		var mt = new MersenneTwister();
 		// our procedural map generator
 		var map = new Map(mt);
+		this.relx = 0;
+		this.rely = 0;
 		
 		this.setPlayer = function(player) {
 			this.player = player;
@@ -217,11 +240,11 @@ function startAsteroidsTNG(gs) {
 		}
 		
 		this.cameraX = function() {
-			return this.x - this.w;
+			return this.relx;
 		}
 		
 		this.cameraY = function () {
-			return this.y - this.h;
+			return this.rely;
 		}
 		
 		this.draw = function() {
@@ -232,6 +255,8 @@ function startAsteroidsTNG(gs) {
 		this.update = function() {
 			this.x = this.x + (this.player.x - this.x) * 0.1;
 			this.y = this.y + (this.player.y - this.y) * 0.1;
+			this.relx = this.x - this.w;
+			this.rely = this.y - this.h;
 			if (Math.floor(this.player.x / gs.width) != this.quadrant[0] ||
 				Math.floor(this.player.y / gs.height) != this.quadrant[1]) {
 				this.updateQuadrant();
@@ -273,8 +298,8 @@ function startAsteroidsTNG(gs) {
 	
 	w = new World();
 	gs.addEntity(w);
-	gs.addEntity(new Ship(w));
 	for (n=0; n<10; n++) {
 		gs.addEntity(new Star(w));
 	}
+	gs.addEntity(new Ship(w));
 }
