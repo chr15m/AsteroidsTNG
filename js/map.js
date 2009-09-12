@@ -79,7 +79,7 @@ function Map(mt, seed) {
 			"x": x,
 			"y": y,
 			"angle": angle,
-			"points": points,
+			"points": points
 		}
 		return asteroidcache[id];
 	}
