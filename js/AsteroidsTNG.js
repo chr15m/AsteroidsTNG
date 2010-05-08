@@ -219,10 +219,8 @@ function startAsteroidsTNG(gs) {
 		this.w = gs.width / 2;
 		this.h = gs.height / 2;
 		this.quadrant = [0, 0];
-		// seedable deterministic random number generator	
-		var mt = new MersenneTwister();
-		// our procedural map generator
-		var map = new Map(mt);
+		// our procedural map generator with seedable deterministic random number generator
+		var map = new Map(new SeedableRandom());
 		this.relx = 0;
 		this.rely = 0;
 		
