@@ -43,6 +43,10 @@ function startAsteroidsTNG(gs) {
 			c.fillStyle = this.fillStyle;
 			gs.polygon(this.poly);
 		}
+		
+		this.headTowards = function(where) {
+			this.heading = where;
+		}
 	}
 	
 	/*** A background parallax star ***/
@@ -101,19 +105,23 @@ function startAsteroidsTNG(gs) {
 		this.y = gs.height / 2;
 		this.angle = 0;
 		this.speed = 0;
+		this.turnRate = 0.1;
+		this.accel = 0.3;
 		this.points = [[0, -13], [-7, 7], [7, 7]];
 		this.poly = [];
 		this.lastsmoke = null;
 		this.world.setPlayer(this);
 		this.strokeStyle = 'rgba(255, 255, 255, 1.0)';
 		this.fillStyle = 'rgba(115, 115, 115, 1.0)';
+		this.followPointer = false;
+		this.heading = null;
 		
 		this.keyHeld_37 = this.keyDown_37 = function () {
-			this.angle -= 0.1;
+			this.incAngle(-1);
 		}
 		
 		this.keyHeld_39 = this.keyDown_39 = function () {
-			this.angle += 0.1;
+			this.incAngle(1);
 		}
 		
 		this.keyDown_38 = function () {
@@ -122,7 +130,7 @@ function startAsteroidsTNG(gs) {
 		
 		this.keyHeld_38 = function () {
 			if (this.speed < 3.0)
-				this.speed += 0.3;
+				this.speed += this.accel;
 		}
 		
 		this.keyDown_32 = function () {
@@ -145,20 +153,65 @@ function startAsteroidsTNG(gs) {
 			}
 		}
 		
+		this.incAngle = function(sign) {
+			this.angle = (this.angle + sign * this.turnRate) % (2 * Math.PI);
+		}
+		
 		this.explode = function() {
 			gs.delEntity(this);
 		}
 		
+		this.setFollowPointer = function(headingpoint) {
+			this.followPointer = true;
+		}
+		
+		this.stopFollowPointer = function() {
+			this.followPointer = false;
+		}
+		
 		this.update = function() {
+			// check if followpointer is on
+			if (this.followPointer) {
+				var heading = [
+					(gs.pointerPosition[0] - gs.width / 2 + this.world.cameraX()) - (this.x - gs.width / 2),
+					gs.pointerPosition[1] - gs.height / 2 + this.world.cameraY() - (this.y - gs.height / 2),
+				];
+				// rotate our heading
+				var pts = [heading[0] * Math.cos(this.angle) + heading[1] * Math.sin(this.angle), heading[0] * Math.sin(this.angle) - heading[1] * Math.cos(this.angle)];
+				this.heading = Math.atan2(pts[0], pts[1]);
+				//console.log(angle);
+				//this.heading = (this.angle - angle) % Math.PI;
+				//console.log(this.heading);
+				//this.heading = null;
+			} else {
+				this.heading = null;
+			}
+			// if the user is doing touch/mouse events then head towards the selected heading
+			if (this.heading) {
+				// turn and head towards it
+				//console.log(this.heading);
+				if (Math.abs(this.heading) < Math.PI / 2 && this.speed < 3.0) {
+					this.speed += this.accel;
+				}
+				if (this.heading > 0.1) {
+					this.incAngle(1);
+				} else if (this.heading < -0.1) {
+					this.incAngle(-1);
+				}
+			}
+			// friction
 			if (this.speed > 0.1)
 				this.speed -= 0.1;
 			else
 				this.speed = 0;
+			// update our position based on our angle and speed
 			this.x = this.x + this.speed * Math.sin(this.angle);
 			this.y = this.y - this.speed * Math.cos(this.angle);
+			// get our newly translated polygon from angle
 			for (n=0; n<this.points.length; n++) {
 				this.poly[n] = [this.points[n][0] * Math.cos(this.angle) - this.points[n][1] * Math.sin(this.angle) + this.x - this.world.cameraX(), this.points[n][0] * Math.sin(this.angle) + this.points[n][1] * Math.cos(this.angle) + this.y - this.world.cameraY()];
 			}
+			// make smoke behind this ship
 			if (this.speed && (!gs.inEntities(this.lastsmoke) || gs.distance([this.lastsmoke.x, this.lastsmoke.y], [this.x, this.y]) > 15)) {
 				this.lastsmoke = new Smoke(world, this.x - 9 * Math.sin(this.angle), this.y + 9 * Math.cos(this.angle));
 				gs.addEntity(this.lastsmoke);
@@ -291,6 +344,23 @@ function startAsteroidsTNG(gs) {
 					asteroidcachesize -= 1;
 				}
 			}
+		}
+		
+		// use touch/mouse to guide the ship
+		this.pointerDown = function() {
+			if (this.player) {
+				this.player.setFollowPointer();
+			}
+		}
+		
+		this.pointerUp = function() {
+			if (this.player) {
+				this.player.stopFollowPointer();
+			}
+		}
+		
+		this.pointerBox = function() {
+			return [0, 0, gs.width, gs.height];
 		}
 	}
 	
