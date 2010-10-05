@@ -1,0 +1,3 @@
+ * collect things
+ * set up basic server
+ * see another player flying around
