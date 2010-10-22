@@ -1,3 +1,5 @@
- * collect things
  * set up basic server
  * see another player flying around
+ * chat with another player
+ * billboarding of asteroids etc. for speed
+ * collect things
