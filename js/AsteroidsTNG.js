@@ -51,7 +51,7 @@ function startAsteroidsTNG(gs) {
 			c.strokeStyle = this.strokeStyle;
 			c.fillStyle = this.fillStyle;
 			gs.polygon(this.poly);
-			this.draw_circle(c);
+			//this.draw_circle(c);
 		}
 		
 		this.headTowards = function(where) {
@@ -60,6 +60,10 @@ function startAsteroidsTNG(gs) {
 		
 		this.get_collision_circle = function() {
 			return [[this.x, this.y], maxrad];
+		}
+		
+		this.get_collision_poly = function() {
+			return this.poly;
 		}
 		
 		this.draw_circle = function(c) {
@@ -139,6 +143,7 @@ function startAsteroidsTNG(gs) {
 		this.fillStyle = 'rgba(115, 115, 115, 1.0)';
 		this.followPointer = false;
 		this.heading = null;
+		this.priority = 10;
 		
 		this.keyHeld_37 = this.keyDown_37 = function () {
 			this.incAngle(-1);
@@ -165,17 +170,13 @@ function startAsteroidsTNG(gs) {
 			//console.log(keyCode);
 		}
 		
-		this.collisionPoly = function() {
-			return this.poly;
-		}
-		
-		this.collided = function(other) {
+		/*this.collided = function(other) {
 			if (other.type == asteroid) {
 				this.explode();
 				other.explode();
 				doReload(1);
 			}
-		}
+		}*/
 		
 		this.incAngle = function(sign) {
 			this.angle = (this.angle + sign * this.turnRate) % (2 * Math.PI);
@@ -198,7 +199,35 @@ function startAsteroidsTNG(gs) {
 		}
 		
 		this.collide_circle = function(who) {
-			this.collided = true;
+			var polycollision = collide.collide_poly_entities(this, who);
+			if (polycollision) {
+				var collisionpoint = polycollision[1];
+				if (collisionpoint) {
+					//var bouncevector = [(collisionpoint[0] - gs.width / 2) - ((this.x - this.world.cameraX()) - gs.width / 2), (collisionpoint[1] - gs.height / 2) - ((this.y - this.world.cameraY()) - gs.height / 2)];
+					var p1 = collisionpoint[0];
+					var p2 = collisionpoint[1];
+					var bouncevector = [p2[1] - p1[1], p1[0] - p2[0]];
+					var bouncesize = Math.sqrt(Math.pow(bouncevector[0], 2) + Math.pow(bouncevector[1], 2));
+					var bouncenormal = [bouncevector[0] / bouncesize, bouncevector[1] / bouncesize];
+					// TODO: fix this up - going into a point doesn't work correctly
+					if (this.bouncevector) {
+						this.bouncevector[0] += bouncenormal[0];
+						this.bouncevector[1] += bouncenormal[1];
+						// renormalize
+						var bouncesize = Math.sqrt(Math.pow(this.bouncevector[0], 2) + Math.pow(this.bouncevector[1], 2));
+						this.bouncevector = [this.bouncevector[0] / bouncesize, this.bouncevector[1] / bouncesize];
+					} else {
+						this.bouncevector = bouncenormal;
+					}
+				} else {
+					// TODO: bounce the player right out in the direction away from center of the asteroid
+				}
+				this.collided = true;
+			}
+		}
+		
+		this.get_collision_poly = function() {
+			return this.poly;
 		}
 		
 		this.draw_circle = function(c) {
@@ -210,6 +239,13 @@ function startAsteroidsTNG(gs) {
 		}
 		
 		this.update = function() {
+			// if we have a bouncevector, add it to our position
+			if (this.bouncevector) {
+				this.x -= this.bouncevector[0] * Math.max(this.speed, 0.1);
+				this.y -= this.bouncevector[1] * Math.max(this.speed, 0.1);
+				this.bouncevector = null;
+				this.speed = 0;
+			}
 			// check if followpointer is on
 			if (this.followPointer) {
 				var heading = [
@@ -274,7 +310,7 @@ function startAsteroidsTNG(gs) {
 			
 			if (this.collided)
 				c.strokeStyle = 'rgb(255, 0, 0)';
-			this.draw_circle(c);
+			//this.draw_circle(c);
 			this.collided = false;
 		}
 	}
