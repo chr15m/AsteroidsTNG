@@ -1,3 +1,5 @@
+var pi2 = Math.PI * 2;
+
 function startAsteroidsTNG(gs) {
 	/*** Define some different types of things ***/
 	t_ship = 1;
@@ -21,11 +23,18 @@ function startAsteroidsTNG(gs) {
 		this.quadrant = quadrant;
 		this.strokeStyle = 'rgba(255, 255, 255, 1.0)';
 		this.fillStyle = 'rgba(115, 115, 115, 1.0)';
+		var maxrad = 0;
 		
 		// structure of this shape
 		this.points = [];
-		for (p=0; p<data.points.length; p++)
-			this.points.push([this.radius * data.points[p][0], this.radius * data.points[p][1]]);
+		for (p=0; p<data.points.length; p++) {
+			var newpoint = [this.radius * data.points[p][0], this.radius * data.points[p][1]];
+			this.points.push(newpoint);
+			var newrad = Math.sqrt(Math.pow(newpoint[0], 2) + Math.pow(newpoint[1], 2));
+			if (newrad > maxrad) {
+				maxrad = newrad;
+			}
+		}
 		this.poly = [];
 		// precalculate rotated version
 		for (n=0; n<data.points.length; n++)
@@ -42,10 +51,24 @@ function startAsteroidsTNG(gs) {
 			c.strokeStyle = this.strokeStyle;
 			c.fillStyle = this.fillStyle;
 			gs.polygon(this.poly);
+			this.draw_circle(c);
 		}
 		
 		this.headTowards = function(where) {
 			this.heading = where;
+		}
+		
+		this.get_collision_circle = function() {
+			return [[this.x, this.y], maxrad];
+		}
+		
+		this.draw_circle = function(c) {
+			var bits = this.get_collision_circle();
+			c.beginPath();
+			c.arc(bits[0][0] - this.world.cameraX(), bits[0][1] - this.world.cameraY(), bits[1], 0, pi2, false);
+			//c.arc(100, 100, 50, 0, pi2, false);
+			c.closePath();
+			c.stroke();
 		}
 	}
 	
@@ -107,7 +130,8 @@ function startAsteroidsTNG(gs) {
 		this.speed = 0;
 		this.turnRate = 0.1;
 		this.accel = 0.3;
-		this.points = [[0, -13], [-7, 7], [7, 7]];
+		this.radius = 13;
+		this.points = [[0, -this.radius], [-7, 7], [7, 7]];
 		this.poly = [];
 		this.lastsmoke = null;
 		this.world.setPlayer(this);
@@ -167,6 +191,22 @@ function startAsteroidsTNG(gs) {
 		
 		this.stopFollowPointer = function() {
 			this.followPointer = false;
+		}
+		
+		this.get_collision_circle = function() {
+			return [[this.x, this.y], this.radius];
+		}
+		
+		this.collide_circle = function(who) {
+			this.collided = true;
+		}
+		
+		this.draw_circle = function(c) {
+			var bits = this.get_collision_circle();
+			c.beginPath();
+			c.arc(bits[0][0] - this.world.cameraX(), bits[0][1] - this.world.cameraY(), bits[1], 0, pi2, false);
+			c.closePath();
+			c.stroke();
 		}
 		
 		this.update = function() {
@@ -231,6 +271,11 @@ function startAsteroidsTNG(gs) {
 			c.closePath();
 			c.fill();
 			c.stroke();
+			
+			if (this.collided)
+				c.strokeStyle = 'rgb(255, 0, 0)';
+			this.draw_circle(c);
+			this.collided = false;
 		}
 	}
 	
@@ -244,7 +289,6 @@ function startAsteroidsTNG(gs) {
 		this.y = y;
 		this.world = world;
 		this.life = 1.0;
-		var pi2 = Math.PI * 2;
 		
 		this.draw = function(c) {
 			c.strokeStyle = smokeStrength[Math.floor(this.life * 10)];
@@ -311,6 +355,10 @@ function startAsteroidsTNG(gs) {
 			if (Math.floor(this.player.x / gs.width) != this.quadrant[0] ||
 				Math.floor(this.player.y / gs.height) != this.quadrant[1]) {
 				this.updateQuadrant();
+			}
+			// do any collisions
+			if (this.player) {
+				collide.circles([this.player], asteroidcache);
 			}
 		}
 		
