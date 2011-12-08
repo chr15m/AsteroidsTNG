@@ -12,6 +12,7 @@
 <style>
 html, body {
 	height: 100%;         /* required */
+	font-family: "Arial";
 }
 body {
 	text-align: center;   /* horizontal centering hack for IE */
@@ -40,9 +41,11 @@ div#content {
 </head>
 <body ontouchstart='ev.preventDefault();'>
 	<div id="distance"></div>
+	<div><p>AsteroidsTNG v61</p><p>boldly go where no polygon has gone before</p></div>
 	<div id="content">
 		<!-- absolutely centered content -->
 		<canvas id='AsteroidsTNG' jsgs="startAsteroidsTNG" fps="30" width="480" height="320"></canvas>
 	</div>
+	<div><p>source code: <code>bzr co http://mccormick.cx/projects/AsteroidsTNG/</code></p></div>
 </body>
 </html>
