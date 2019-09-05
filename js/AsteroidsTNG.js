@@ -222,7 +222,7 @@ function startAsteroidsTNG(gs) {
 				} else {
 					// TODO: bounce the player right out in the direction away from center of the asteroid
 				}
-				this.collided = true;
+				this.iscollided = true;
 			}
 		}
 		
@@ -308,10 +308,10 @@ function startAsteroidsTNG(gs) {
 			c.fill();
 			c.stroke();
 			
-			if (this.collided)
+			if (this.iscollided)
 				c.strokeStyle = 'rgb(255, 0, 0)';
 			//this.draw_circle(c);
-			this.collided = false;
+			this.iscollided = false;
 		}
 	}
 	
